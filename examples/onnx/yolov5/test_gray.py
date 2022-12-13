@@ -15,15 +15,15 @@ BOX_THRESH = 0.5
 NMS_THRESH = 0.6
 IMG_SIZE = (640, 640) # (width, height), such as (1280, 736)
 
-CLASSES = ("person", "bicycle", "car","motorbike ","aeroplane ","bus ","train","truck ","boat","traffic light",
-           "fire hydrant","stop sign ","parking meter","bench","bird","cat","dog ","horse ","sheep","cow","elephant",
-           "bear","zebra ","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite",
-           "baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife ",
-           "spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza ","donut","cake","chair","sofa",
-           "pottedplant","bed","diningtable","toilet ","tvmonitor","laptop	","mouse	","remote ","keyboard ","cell phone","microwave ",
-           "oven ","toaster","sink","refrigerator ","book","clock","vase","scissors ","teddy bear ","hair drier", "toothbrush ")
+# CLASSES = ("person", "bicycle", "car","motorbike ","aeroplane ","bus ","train","truck ","boat","traffic light",
+#            "fire hydrant","stop sign ","parking meter","bench","bird","cat","dog ","horse ","sheep","cow","elephant",
+#            "bear","zebra ","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite",
+#            "baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife ",
+#            "spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza ","donut","cake","chair","sofa",
+#            "pottedplant","bed","diningtable","toilet ","tvmonitor","laptop	","mouse	","remote ","keyboard ","cell phone","microwave ",
+#            "oven ","toaster","sink","refrigerator ","book","clock","vase","scissors ","teddy bear ","hair drier", "toothbrush ")
 
-# CLASSES = ("stand", "lookback", "handsup","overdesk ")
+CLASSES = ("stand", "lookback", "handsup","overdesk ")
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
@@ -238,8 +238,8 @@ if __name__ == '__main__':
     # pre-process config
     print('--> Config model')
     rknn.config(reorder_channel='0 1 2',
-                mean_values=[[0, 0, 0]],
-                std_values=[[255, 255, 255]],
+                mean_values=[[0]],
+                std_values=[[255]],
                 optimization_level=3,
                 target_platform = 'rv1126',
                 output_optimize=1,
@@ -286,8 +286,8 @@ if __name__ == '__main__':
     # Set inputs
     img = cv2.imread(IMG_PATH)
     img, ratio, (dw, dh) = letterbox(img, new_shape=(IMG_SIZE[1], IMG_SIZE[0]))
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # img = img[np.newaxis, ...]
 
     # Inference
@@ -310,7 +310,7 @@ if __name__ == '__main__':
 
     boxes, classes, scores = yolov5_post_process(input_data)
 
-    img_1 = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    img_1 = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     if boxes is not None:
         draw(img_1, boxes, scores, classes)
     cv2.imshow("post process result", img_1)
