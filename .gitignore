@@ -8,3 +8,5 @@
 examples/onnx/resnet50v2/resnet50v2\.onnx
 
 examples/onnx/resnet50v2/log_feedback_to_the_rknn_toolkit_dev_team\.log
+
+examples/caffe/mobilenet_v2/log_feedback_to_the_rknn_toolkit_dev_team\.log
