@@ -1,0 +1,6 @@
+
+\.idea/
+
+examples/onnx/acfree/yolov5s\.rknn
+
+examples/onnx/acfree/yolov5s\.onnx
