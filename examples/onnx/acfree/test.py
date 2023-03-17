@@ -2,34 +2,20 @@ import os
 import numpy as np
 import cv2
 from rknn.api import RKNN
+import pickle
 
-ONNX_MODEL = 'yolov5s.onnx'
-RKNN_MODEL = '/home/manu/nfs/tmp/install/rknn_yolov5_demo/model/rv1109_rv1126/yolov5s.rknn'
-IMG_PATH = './bus.jpg'
-DATASET = './dataset.txt'
+ONNX_MODEL = '/home/manu/tmp/acfree.onnx'
+RKNN_MODEL = '/home/manu/nfs/tmp/install/rknn_yolov5_demo/model/rv1109_rv1126/acfree.rknn'
+IMG_PATH = '/home/manu/nfs/tmp/install/rknn_yolov5_demo/model/sylgd_rp.bmp'
+DATASET = '/home/manu/tmp/dataset.txt'
 
-QUANTIZE_ON = True
+QUANTIZE_ON = False
 
 BOX_THRESH = 0.5
 NMS_THRESH = 0.6
-IMG_SIZE = (640, 640)  # (width, height), such as (1280, 736)
+IMG_SIZE = (1280, 1280)  # (width, height), such as (1280, 736)
 
-CLASSES = ("person", "bicycle", "car", "motorbike ", "aeroplane ", "bus ", "train", "truck ", "boat", "traffic light",
-           "fire hydrant", "stop sign ", "parking meter", "bench", "bird", "cat", "dog ", "horse ", "sheep", "cow",
-           "elephant",
-           "bear", "zebra ", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis",
-           "snowboard", "sports ball", "kite",
-           "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup",
-           "fork", "knife ",
-           "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza ", "donut",
-           "cake", "chair", "sofa",
-           "pottedplant", "bed", "diningtable", "toilet ", "tvmonitor", "laptop	", "mouse	", "remote ",
-           "keyboard ", "cell phone", "microwave ",
-           "oven ", "toaster", "sink", "refrigerator ", "book", "clock", "vase", "scissors ", "teddy bear ",
-           "hair drier", "toothbrush ")
-
-
-# CLASSES = ("head",)
+CLASSES = ("head",)
 
 
 def sigmoid(x):
@@ -46,27 +32,27 @@ def xywh2xyxy(x):
     return y
 
 
-def process(input, mask, anchors):
-    anchors = [anchors[i] for i in mask]
+def process(input):
     grid_h, grid_w = map(int, input.shape[0:2])
 
-    box_confidence = sigmoid(input[..., 4])
-    box_confidence = np.expand_dims(box_confidence, axis=-1)
+    box_confidence = np.expand_dims(input[..., 4], axis=-1)
 
     box_class_probs = sigmoid(input[..., 5:])
 
-    box_xy = sigmoid(input[..., :2]) * 2 - 0.5
+    box_lt = input[..., :2]
+    box_rb = input[..., 2:4]
 
-    col = np.tile(np.arange(0, grid_w), grid_h).reshape(-1, grid_w)
-    row = np.tile(np.arange(0, grid_h).reshape(-1, 1), grid_w)
-    col = col.reshape(grid_h, grid_w, 1, 1).repeat(3, axis=-2)
-    row = row.reshape(grid_h, grid_w, 1, 1).repeat(3, axis=-2)
+    col = np.tile(np.arange(0, grid_w), grid_w).reshape(-1, grid_w)
+    row = np.tile(np.arange(0, grid_h).reshape(-1, 1), grid_h)
+    col = col.reshape(grid_h, grid_w, 1, 1)
+    row = row.reshape(grid_h, grid_w, 1, 1)
     grid = np.concatenate((col, row), axis=-1)
-    box_xy += grid
-    box_xy *= (int(IMG_SIZE[1] / grid_h), int(IMG_SIZE[0] / grid_w))
-
-    box_wh = pow(sigmoid(input[..., 2:4]) * 2, 2)
-    box_wh = box_wh * anchors
+    box_x1y1 = grid - box_lt + 0.5
+    box_x2y2 = grid + box_rb + 0.5
+    box_xy = (box_x2y2 + box_x1y1) / 2
+    box_wh = box_x2y2 - box_x1y1
+    box_xy *= int(IMG_SIZE[0] / grid_w)
+    box_wh *= int(IMG_SIZE[1] / grid_h)
 
     box = np.concatenate((box_xy, box_wh), axis=-1)
 
@@ -186,6 +172,43 @@ def yolov5_post_process(input_data):
     return boxes, classes, scores
 
 
+def acfree_post_process(input_data):
+    boxes, classes, scores = [], [], []
+    for input in input_data:
+        b, c, s = process(input)
+        b, c, s = filter_boxes(b, c, s)
+        boxes.append(b)
+        classes.append(c)
+        scores.append(s)
+
+    boxes = np.concatenate(boxes)
+    boxes = xywh2xyxy(boxes)
+    classes = np.concatenate(classes)
+    scores = np.concatenate(scores)
+
+    nboxes, nclasses, nscores = [], [], []
+    for c in set(classes):
+        inds = np.where(classes == c)
+        b = boxes[inds]
+        c = classes[inds]
+        s = scores[inds]
+
+        keep = nms_boxes(b, s)
+
+        nboxes.append(b[keep])
+        nclasses.append(c[keep])
+        nscores.append(s[keep])
+
+    if not nclasses and not nscores:
+        return None, None, None
+
+    boxes = np.concatenate(nboxes)
+    classes = np.concatenate(nclasses)
+    scores = np.concatenate(nscores)
+
+    return boxes, classes, scores
+
+
 def draw(image, boxes, scores, classes):
     """Draw the boxes on the image.
 
@@ -259,9 +282,15 @@ if __name__ == '__main__':
 
     # Load ONNX model
     print('--> Loading model')
-    ret = rknn.load_onnx(model=ONNX_MODEL)
+    ret = rknn.load_onnx(model=ONNX_MODEL,
+                         outputs=['/detect/cls_preds.0/Conv_output_0',
+                                  '/detect/cls_preds.1/Conv_output_0',
+                                  '/detect/cls_preds.2/Conv_output_0',
+                                  '/detect/reg_preds.0/Conv_output_0',
+                                  '/detect/reg_preds.1/Conv_output_0',
+                                  '/detect/reg_preds.2/Conv_output_0'])
     if ret != 0:
-        print('Load yolov5 failed!')
+        print('Load model failed!')
         exit(ret)
     print('done')
 
@@ -269,7 +298,7 @@ if __name__ == '__main__':
     print('--> Building model')
     ret = rknn.build(do_quantization=QUANTIZE_ON, dataset=DATASET)
     if ret != 0:
-        print('Build yolov5 failed!')
+        print('Build model failed!')
         exit(ret)
     print('done')
 
@@ -277,7 +306,7 @@ if __name__ == '__main__':
     print('--> Export RKNN model')
     ret = rknn.export_rknn(RKNN_MODEL)
     if ret != 0:
-        print('Export yolov5rknn failed!')
+        print('Export model failed!')
         exit(ret)
     print('done')
 
@@ -292,33 +321,65 @@ if __name__ == '__main__':
 
     # Set inputs
     img = cv2.imread(IMG_PATH)
-    img, ratio, (dw, dh) = letterbox(img, new_shape=(IMG_SIZE[1], IMG_SIZE[0]))
+    # img, ratio, (dw, dh) = letterbox(img, new_shape=(IMG_SIZE[1], IMG_SIZE[0]))
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     # Inference
     print('--> Running model')
     outputs = rknn.inference(inputs=[img])
 
-    # post process
-    input0_data = outputs[0]
-    input1_data = outputs[1]
-    input2_data = outputs[2]
+    # save outputs
+    for save_i in range(len(outputs)):
+        save_output = outputs[save_i].flatten()
+        np.savetxt('/home/manu/tmp/rknn_output_nq_%s.txt' % save_i, save_output,
+                   fmt="%f", delimiter="\n")
 
-    input0_data = input0_data.reshape([3, -1] + list(input0_data.shape[-2:]))
-    input1_data = input1_data.reshape([3, -1] + list(input1_data.shape[-2:]))
-    input2_data = input2_data.reshape([3, -1] + list(input2_data.shape[-2:]))
+    with open('/home/manu/tmp/rknn_sim_outputs_nq.pickle', 'wb') as f:
+        pickle.dump(outputs, f)
+
+    # with open('/home/manu/tmp/rknn_sim_outputs.pickle', 'rb') as f:
+    #     outputs = pickle.load(f)
+
+    # # save outputs
+    # for save_i in range(len(outputs)):
+    #     save_output = outputs_pickle[save_i].flatten()
+    #     np.savetxt('/home/manu/tmp/rknn_output_pickle_%s.txt' % save_i, save_output,
+    #                fmt="%f", delimiter="\n")
+
+    # post process
+    input0_data = outputs[0]  # 1 x 80 x 160 x 160
+    input1_data = outputs[1]  # 1 x 80 x 80 x 80
+    input2_data = outputs[2]  # 1 x 80 x 40 x 40
+    input3_data = outputs[3]  # 1 x 4 x 160 x 160
+    input4_data = outputs[4]  # 1 x 4 x 80 x 80
+    input5_data = outputs[5]  # 1 x 4 x 40 x 40
+
+    input0_data_t = np.transpose(input0_data, (2, 3, 0, 1))  # 160 x 160 x 1 x 80
+    input1_data_t = np.transpose(input1_data, (2, 3, 0, 1))  # 80 x 80 x 1 x 80
+    input2_data_t = np.transpose(input2_data, (2, 3, 0, 1))  # 40 x 40 x 1 x 80
+    input3_data_t = np.transpose(input3_data, (2, 3, 0, 1))  # 160 x 160 x 1 x 4
+    input4_data_t = np.transpose(input4_data, (2, 3, 0, 1))  # 80 x 80 x 1 x 4
+    input5_data_t = np.transpose(input5_data, (2, 3, 0, 1))  # 40 x 40 x 1 x 4
+
+    input6_data_t = np.ones((input0_data_t.shape[0], input0_data_t.shape[1], 1, 1), dtype=np.float32)
+    input7_data_t = np.ones((input1_data_t.shape[0], input1_data_t.shape[1], 1, 1), dtype=np.float32)
+    input8_data_t = np.ones((input2_data_t.shape[0], input2_data_t.shape[1], 1, 1), dtype=np.float32)
 
     input_data = list()
-    input_data.append(np.transpose(input0_data, (2, 3, 0, 1)))
-    input_data.append(np.transpose(input1_data, (2, 3, 0, 1)))
-    input_data.append(np.transpose(input2_data, (2, 3, 0, 1)))
+    input_data.append(np.concatenate((input3_data_t, input6_data_t, input0_data_t), axis=-1))
+    input_data.append(np.concatenate((input4_data_t, input7_data_t, input1_data_t), axis=-1))
+    input_data.append(np.concatenate((input5_data_t, input8_data_t, input2_data_t), axis=-1))
 
-    boxes, classes, scores = yolov5_post_process(input_data)
+    boxes, classes, scores = acfree_post_process(input_data)
 
     img_1 = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     if boxes is not None:
         draw(img_1, boxes, scores, classes)
+    # show output
     cv2.imshow("post process result", img_1)
-    cv2.waitKeyEx(0)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    cv2.imwrite('/home/manu/tmp/rknn_sim_img.bmp', img_1)
 
     rknn.release()

@@ -4,3 +4,5 @@
 examples/onnx/acfree/yolov5s\.rknn
 
 examples/onnx/acfree/yolov5s\.onnx
+
+examples/onnx/acfree/log_feedback_to_the_rknn_toolkit_dev_team\.log
