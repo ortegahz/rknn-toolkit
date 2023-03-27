@@ -2,14 +2,15 @@ import os
 import numpy as np
 import cv2
 from rknn.api import RKNN
-import pickle
+# import pickle
+import sys
 
 ONNX_MODEL = '/home/manu/tmp/acfree.onnx'
 RKNN_MODEL = '/home/manu/nfs/tmp/install/rknn_yolov5_demo/model/rv1109_rv1126/acfree.rknn'
 IMG_PATH = '/home/manu/nfs/tmp/install/rknn_yolov5_demo/model/sylgd_rp.bmp'
 DATASET = '/home/manu/tmp/dataset.txt'
 
-QUANTIZE_ON = False
+QUANTIZE_ON = True
 
 BOX_THRESH = 0.5
 NMS_THRESH = 0.6
@@ -309,6 +310,8 @@ if __name__ == '__main__':
         print('Export model failed!')
         exit(ret)
     print('done')
+
+    sys.exit(0)
 
     # init runtime environment
     print('--> Init runtime environment')
