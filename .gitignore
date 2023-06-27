@@ -6,3 +6,13 @@ examples/onnx/acfree/yolov5s\.rknn
 examples/onnx/acfree/yolov5s\.onnx
 
 examples/onnx/acfree/log_feedback_to_the_rknn_toolkit_dev_team\.log
+
+examples/onnx/acfree/dump_data_distribute/
+
+examples/onnx/acfree/normal_quantization_analysis/entire_qnt/
+
+examples/onnx/acfree/normal_quantization_analysis/fp32/
+
+examples/onnx/acfree/normal_quantization_analysis/individual_qnt/
+
+examples/onnx/acfree/normal_quantization_analysis/
