@@ -16,3 +16,7 @@ examples/onnx/acfree/normal_quantization_analysis/fp32/
 examples/onnx/acfree/normal_quantization_analysis/individual_qnt/
 
 examples/onnx/acfree/normal_quantization_analysis/
+
+*.rknn
+
+*.cfg
