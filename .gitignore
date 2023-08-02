@@ -20,3 +20,5 @@ examples/onnx/acfree/normal_quantization_analysis/
 *.rknn
 
 *.cfg
+
+packages/
