@@ -4,11 +4,12 @@ import shutil
 from rknn.api import RKNN
 
 ONNX_MODEL = '/home/manu/tmp/acfree.onnx'
-RKNN_MODEL = '/home/manu/tmp/acfree.rknn'
+RKNN_MODEL = '/home/manu/nfs/rv1126/install/rknn_yolov5_demo/model/rv1109_rv1126/acfree.rknn'
 IMG_PATH = '/media/manu/samsung/pics/students_lt.bmp'
 DATASET = './dataset.txt'
 
 QUANTIZE_ON = True
+ACC_ANALYSIS_ON = False
 
 if __name__ == '__main__':
 
@@ -65,8 +66,9 @@ if __name__ == '__main__':
         shutil.rmtree(dir_out)
 
     # Accuracy analysis
-    print('--> Accuracy analysis')
-    rknn.accuracy_analysis(inputs='./dataset.txt', draw_data_distribute=False)
-    print('done')
+    if ACC_ANALYSIS_ON:
+        print('--> Accuracy analysis')
+        rknn.accuracy_analysis(inputs='./dataset.txt', draw_data_distribute=False)
+        print('done')
 
     rknn.release()

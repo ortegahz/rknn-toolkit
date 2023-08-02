@@ -1,5 +1,5 @@
-import pickle
 import os
+import pickle
 
 import cv2
 import numpy as np
@@ -34,8 +34,8 @@ def process(input):
 
     box_class_probs = sigmoid(input[..., 5:])
 
-    indices = np.where(box_class_probs == 0.5371627807617188)
-    print(f'{grid_h} {grid_w} -- > {indices} <{input[..., 5:][indices[0], indices[1], indices[2], indices[3]]}>')
+    # indices = np.where(box_class_probs == 0.5371627807617188)
+    # print(f'{grid_h} {grid_w} -- > {indices} <{input[..., 5:][indices[0], indices[1], indices[2], indices[3]]}>')
 
     box_lt = input[..., :2]
     box_rb = input[..., 2:4]
@@ -265,7 +265,7 @@ if __name__ == '__main__':
     # img, ratio, (dw, dh) = letterbox(img, new_shape=(IMG_SIZE[1], IMG_SIZE[0]))
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    with open('/home/manu/tmp/rknn_sim_outputs_nq.pickle', 'rb') as f:
+    with open('/home/manu/tmp/rknn_sim_outputs.pickle', 'rb') as f:
         outputs = pickle.load(f)
 
     # post process
