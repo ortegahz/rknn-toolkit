@@ -4,7 +4,7 @@ import pickle
 import cv2
 import numpy as np
 
-IMG_PATH = '/media/manu/samsung/pics/students_lt.bmp'
+from test_nnie_s1 import QUANTIZE_ON, IMG_PATH
 
 BOX_THRESH = 0.4
 NMS_THRESH = 0.3
@@ -265,8 +265,12 @@ if __name__ == '__main__':
     # img, ratio, (dw, dh) = letterbox(img, new_shape=(IMG_SIZE[1], IMG_SIZE[0]))
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    with open('/home/manu/tmp/rknn_sim_outputs.pickle', 'rb') as f:
-        outputs = pickle.load(f)
+    if QUANTIZE_ON:
+        with open('/home/manu/tmp/rknn_sim_outputs.pickle', 'rb') as f:
+            outputs = pickle.load(f)
+    else:
+        with open('/home/manu/tmp/rknn_sim_outputs_nq.pickle', 'rb') as f:
+            outputs = pickle.load(f)
 
     # post process
     input0_data = outputs[0]  # 1 x c x 80 x 80

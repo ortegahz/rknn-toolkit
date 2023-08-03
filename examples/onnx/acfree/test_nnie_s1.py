@@ -9,7 +9,7 @@ IMG_PATH = '/media/manu/samsung/pics/students_lt.bmp'
 DATASET = './dataset.txt'
 
 QUANTIZE_ON = True
-ACC_ANALYSIS_ON = True
+ACC_ANALYSIS_ON = False
 
 if __name__ == '__main__':
 
