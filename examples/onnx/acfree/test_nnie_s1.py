@@ -9,7 +9,7 @@ IMG_PATH = '/media/manu/samsung/pics/students_lt.bmp'
 DATASET = './dataset.txt'
 
 QUANTIZE_ON = True
-ACC_ANALYSIS_ON = False
+ACC_ANALYSIS_ON = True
 
 if __name__ == '__main__':
 
@@ -33,13 +33,20 @@ if __name__ == '__main__':
 
     # Load ONNX model
     print('--> Loading model')
+    # ret = rknn.load_onnx(model=ONNX_MODEL,
+    #                      outputs=['onnx::Sigmoid_237',
+    #                               'onnx::Sigmoid_260',
+    #                               'onnx::Sigmoid_283',
+    #                               'onnx::Reshape_240',
+    #                               'onnx::Reshape_263',
+    #                               'onnx::Reshape_286'])
     ret = rknn.load_onnx(model=ONNX_MODEL,
-                         outputs=['onnx::Sigmoid_237',
-                                  'onnx::Sigmoid_260',
-                                  'onnx::Sigmoid_283',
-                                  'onnx::Reshape_240',
-                                  'onnx::Reshape_263',
-                                  'onnx::Reshape_286'])
+                         outputs=['onnx::Sigmoid_241',
+                                  'onnx::Sigmoid_264',
+                                  'onnx::Sigmoid_287',
+                                  'onnx::Reshape_244',
+                                  'onnx::Reshape_267',
+                                  'onnx::Reshape_290'])
     if ret != 0:
         print('Load model failed!')
         exit(ret)

@@ -24,3 +24,5 @@ examples/onnx/acfree/normal_quantization_analysis/
 packages/
 
 *.pyc
+
+examples/onnx/acfree/snapshot/
