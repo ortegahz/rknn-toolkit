@@ -5,11 +5,10 @@ from rknn.api import RKNN
 
 ONNX_MODEL = '/home/manu/tmp/acfree.onnx'
 RKNN_MODEL = '/home/manu/nfs/rv1126/install/rknn_yolov5_demo/model/rv1109_rv1126/acfree.rknn'
-IMG_PATH = '/media/manu/samsung/pics/students_lt.bmp'
 DATASET = '/home/manu/tmp/dataset.txt'
 
-QUANTIZE_ON = True
-ACC_ANALYSIS_ON = True
+QUANTIZE_ON = False
+ACC_ANALYSIS_ON = False
 
 if __name__ == '__main__':
 
@@ -33,20 +32,15 @@ if __name__ == '__main__':
 
     # Load ONNX model
     print('--> Loading model')
-    # ret = rknn.load_onnx(model=ONNX_MODEL,
-    #                      outputs=['onnx::Sigmoid_237',
-    #                               'onnx::Sigmoid_260',
-    #                               'onnx::Sigmoid_283',
-    #                               'onnx::Reshape_240',
-    #                               'onnx::Reshape_263',
-    #                               'onnx::Reshape_286'])
     ret = rknn.load_onnx(model=ONNX_MODEL,
-                         outputs=['onnx::Sigmoid_241',
-                                  'onnx::Sigmoid_264',
-                                  'onnx::Sigmoid_287',
-                                  'onnx::Reshape_244',
-                                  'onnx::Reshape_267',
-                                  'onnx::Reshape_290'])
+                         outputs=['onnx::Sigmoid_326',
+                                  'onnx::Sigmoid_349',
+                                  'onnx::Sigmoid_372',
+                                  'onnx::Sigmoid_395',
+                                  'onnx::Reshape_329',
+                                  'onnx::Reshape_352',
+                                  'onnx::Reshape_375',
+                                  'onnx::Reshape_398'])
     if ret != 0:
         print('Load model failed!')
         exit(ret)

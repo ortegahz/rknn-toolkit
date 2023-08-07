@@ -1,33 +1,17 @@
 import os
+import pickle
 
 import cv2
 import numpy as np
-from rknn.api import RKNN
 
-PT_MODEL = '/home/manu/tmp/yolov5s.torchscript.pt'
-RKNN_MODEL = '/home/manu/tmp/yolov5s.rknn'
-IMG_PATH = '/media/manu/samsung/pics/students_lt.bmp'
-DATASET = './dataset.txt'
+from test_rknn_6_s1 import QUANTIZE_ON
+from test_rknn_6_s2 import IMG_PATH
 
-QUANTIZE_ON = False
+BOX_THRESH = 0.399
+NMS_THRESH = 0.3
+IMG_SIZE = (1280, 1280)  # (width, height), such as (1280, 736)
 
-BOX_THRESH = 0.5
-NMS_THRESH = 0.6
-IMG_SIZE = (640, 640)  # (width, height), such as (1280, 736)
-
-CLASSES = ("person", "bicycle", "car", "motorbike ", "aeroplane ", "bus ", "train", "truck ", "boat", "traffic light",
-           "fire hydrant", "stop sign ", "parking meter", "bench", "bird", "cat", "dog ", "horse ", "sheep", "cow",
-           "elephant",
-           "bear", "zebra ", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis",
-           "snowboard", "sports ball", "kite",
-           "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup",
-           "fork", "knife ",
-           "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza ", "donut",
-           "cake", "chair", "sofa",
-           "pottedplant", "bed", "diningtable", "toilet ", "tvmonitor", "laptop	", "mouse	", "remote ",
-           "keyboard ", "cell phone", "microwave ",
-           "oven ", "toaster", "sink", "refrigerator ", "book", "clock", "vase", "scissors ", "teddy bear ",
-           "hair drier", "toothbrush ")
+CLASSES = ("head",)
 
 
 def sigmoid(x):
@@ -44,27 +28,31 @@ def xywh2xyxy(x):
     return y
 
 
-def process(input, mask, anchors):
-    anchors = [anchors[i] for i in mask]
+def process(input):
     grid_h, grid_w = map(int, input.shape[0:2])
 
-    box_confidence = sigmoid(input[..., 4])
-    box_confidence = np.expand_dims(box_confidence, axis=-1)
+    box_confidence = np.expand_dims(input[..., 4], axis=-1)
 
     box_class_probs = sigmoid(input[..., 5:])
 
-    box_xy = sigmoid(input[..., :2]) * 2 - 0.5
+    # indices = np.where(box_class_probs == 0.5371627807617188)
+    # print(f'{grid_h} {grid_w} -- > {indices} <{input[..., 5:][indices[0], indices[1], indices[2], indices[3]]}>')
+    print(f'{grid_h} {grid_w} --> {len(box_class_probs[box_class_probs > BOX_THRESH].flatten())}')
 
-    col = np.tile(np.arange(0, grid_w), grid_h).reshape(-1, grid_w)
-    row = np.tile(np.arange(0, grid_h).reshape(-1, 1), grid_w)
-    col = col.reshape(grid_h, grid_w, 1, 1).repeat(3, axis=-2)
-    row = row.reshape(grid_h, grid_w, 1, 1).repeat(3, axis=-2)
+    box_lt = input[..., :2]
+    box_rb = input[..., 2:4]
+
+    col = np.tile(np.arange(0, grid_w), grid_w).reshape(-1, grid_w)
+    row = np.tile(np.arange(0, grid_h).reshape(-1, 1), grid_h)
+    col = col.reshape(grid_h, grid_w, 1, 1)
+    row = row.reshape(grid_h, grid_w, 1, 1)
     grid = np.concatenate((col, row), axis=-1)
-    box_xy += grid
-    box_xy *= (int(IMG_SIZE[1] / grid_h), int(IMG_SIZE[0] / grid_w))
-
-    box_wh = pow(sigmoid(input[..., 2:4]) * 2, 2)
-    box_wh = box_wh * anchors
+    box_x1y1 = grid - box_lt + 0.5
+    box_x2y2 = grid + box_rb + 0.5
+    box_xy = (box_x2y2 + box_x1y1) / 2
+    box_wh = box_x2y2 - box_x1y1
+    box_xy *= int(IMG_SIZE[0] / grid_w)
+    box_wh *= int(IMG_SIZE[1] / grid_h)
 
     box = np.concatenate((box_xy, box_wh), axis=-1)
 
@@ -184,8 +172,49 @@ def yolov5_post_process(input_data):
     return boxes, classes, scores
 
 
+def acfree_post_process(input_data):
+    boxes, classes, scores = [], [], []
+    for input in input_data:
+        b, c, s = process(input)
+        b, c, s = filter_boxes(b, c, s)
+        boxes.append(b)
+        classes.append(c)
+        scores.append(s)
+
+    boxes = np.concatenate(boxes)
+    boxes = xywh2xyxy(boxes)
+    classes = np.concatenate(classes)
+    scores = np.concatenate(scores)
+
+    nboxes, nclasses, nscores = [], [], []
+    for c in set(classes):
+        inds = np.where(classes == c)
+        b = boxes[inds]
+        c = classes[inds]
+        s = scores[inds]
+
+        keep = nms_boxes(b, s)
+
+        # nboxes.append(b[keep])
+        # nclasses.append(c[keep])
+        # nscores.append(s[keep])
+        nboxes.append(b)
+        nclasses.append(c)
+        nscores.append(s)
+
+    if not nclasses and not nscores:
+        return None, None, None
+
+    boxes = np.concatenate(nboxes)
+    classes = np.concatenate(nclasses)
+    scores = np.concatenate(nscores)
+
+    return boxes, classes, scores
+
+
 def draw(image, boxes, scores, classes):
     """Draw the boxes on the image.
+
     # Argument:
         image: original image.
         boxes: ndarray, boxes of objects.
@@ -194,17 +223,17 @@ def draw(image, boxes, scores, classes):
         all_classes: all classes name.
     """
     for box, score, cl in zip(boxes, scores, classes):
-        left, top, right, bottom = box
-        print('class: {}, score: {}'.format(CLASSES[cl], score))
-        print('box coordinate left,top,right,bottom: [{}, {}, {}, {}]'.format(left, top, right, bottom))
-        left = int(left)
+        top, left, right, bottom = box
+        # print('class: {}, score: {}'.format(CLASSES[cl], score))
+        # print('box coordinate left,top,right,down: [{}, {}, {}, {}]'.format(top, left, right, bottom))
         top = int(top)
+        left = int(left)
         right = int(right)
         bottom = int(bottom)
 
-        cv2.rectangle(image, (left, top), (right, bottom), (255, 0, 0), 2)
+        cv2.rectangle(image, (top, left), (right, bottom), (255, 0, 0), 2)
         cv2.putText(image, '{0} {1:.2f}'.format(CLASSES[cl], score),
-                    (left, top - 6),
+                    (top, left - 6),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.6, (0, 0, 255), 2)
 
@@ -236,91 +265,73 @@ def letterbox(im, new_shape=(640, 640), color=(0, 0, 0)):
 
 if __name__ == '__main__':
 
-    # Create RKNN object
-    rknn = RKNN(verbose=False)
-
-    if not os.path.exists(PT_MODEL):
-        print('model not exist')
-        exit(-1)
-
-    _force_builtin_perm = False
-    # pre-process config
-    print('--> Config model')
-    rknn.config(
-        reorder_channel='0 1 2',
-        mean_values=[[0, 0, 0]],
-        std_values=[[255, 255, 255]],
-        optimization_level=3,
-        target_platform='rk1808',
-        # target_platform='rv1109',
-        quantize_input_node=QUANTIZE_ON,
-        output_optimize=1,
-        force_builtin_perm=_force_builtin_perm)
-    print('done')
-
-    # Load ONNX model
-    print('--> Loading model')
-    ret = rknn.load_pytorch(model=PT_MODEL, input_size_list=[[3, IMG_SIZE[1], IMG_SIZE[0]]])
-    if ret != 0:
-        print('Load yolov5 failed!')
-        exit(ret)
-    print('done')
-
-    # Build model
-    print('--> Building model')
-    ret = rknn.build(do_quantization=QUANTIZE_ON, dataset=DATASET, pre_compile=False)
-    if ret != 0:
-        print('Build yolov5 failed!')
-        exit(ret)
-    print('done')
-
-    # Export RKNN model
-    print('--> Export RKNN model')
-    ret = rknn.export_rknn(RKNN_MODEL)
-    if ret != 0:
-        print('Export yolov5rknn failed!')
-        exit(ret)
-    print('done')
-
-    # init runtime environment
-    print('--> Init runtime environment')
-    ret = rknn.init_runtime()
-    # ret = rknn.init_runtime('rv1109', device_id='1109')
-    # ret = rknn.init_runtime('rk1808', device_id='1808')
-    if ret != 0:
-        print('Init runtime environment failed')
-        exit(ret)
-    print('done')
-
     # Set inputs
     img = cv2.imread(IMG_PATH)
-    img, ratio, (dw, dh) = letterbox(img, new_shape=(IMG_SIZE[1], IMG_SIZE[0]))
+    # img, ratio, (dw, dh) = letterbox(img, new_shape=(IMG_SIZE[1], IMG_SIZE[0]))
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    # Inference
-    print('--> Running model')
-    outputs = rknn.inference(inputs=[img], inputs_pass_through=[0 if not _force_builtin_perm else 1])
+    if QUANTIZE_ON:
+        with open('/home/manu/tmp/rknn_sim_outputs.pickle', 'rb') as f:
+            outputs = pickle.load(f)
+    else:
+        with open('/home/manu/tmp/rknn_sim_outputs_nq.pickle', 'rb') as f:
+            outputs = pickle.load(f)
 
     # post process
-    input0_data = outputs[0]
-    input1_data = outputs[1]
-    input2_data = outputs[2]
+    input0_data = outputs[0]  # 1 x c x 160 x 160
+    input1_data = outputs[1]  # 1 x c x 80 x 80
+    input2_data = outputs[2]  # 1 x c x 40 x 40
+    input3_data = outputs[3]  # 1 x c x 20 x 20
+    input4_data = outputs[4]  # 1 x 4 x 160 x 160
+    input5_data = outputs[5]  # 1 x 4 x 80 x 80
+    input6_data = outputs[6]  # 1 x 4 x 40 x 40
+    input7_data = outputs[7]  # 1 x 4 x 20 x 20
 
-    input0_data = input0_data.reshape([3, -1] + list(input0_data.shape[-2:]))
-    input1_data = input1_data.reshape([3, -1] + list(input1_data.shape[-2:]))
-    input2_data = input2_data.reshape([3, -1] + list(input2_data.shape[-2:]))
+    input0_data_t = np.transpose(input0_data, (2, 3, 0, 1))  # 160 x 160 x 1 x c
+    input1_data_t = np.transpose(input1_data, (2, 3, 0, 1))  # 80 x 80 x 1 x c
+    input2_data_t = np.transpose(input2_data, (2, 3, 0, 1))  # 40 x 40 x 1 x c
+    input3_data_t = np.transpose(input3_data, (2, 3, 0, 1))  # 20 x 20 x 1 x c
+
+    input4_data_t = np.transpose(input4_data, (2, 3, 0, 1))  # 160 x 160 x 1 x 4
+    input5_data_t = np.transpose(input5_data, (2, 3, 0, 1))  # 80 x 80 x 1 x 4
+    input6_data_t = np.transpose(input6_data, (2, 3, 0, 1))  # 40 x 40 x 1 x 4
+    input7_data_t = np.transpose(input7_data, (2, 3, 0, 1))  # 20 x 20 x 1 x 4
+
+    input8_data_t = np.ones((input0_data_t.shape[0], input0_data_t.shape[1], 1, 1), dtype=np.float32)
+    input9_data_t = np.ones((input1_data_t.shape[0], input1_data_t.shape[1], 1, 1), dtype=np.float32)
+    input10_data_t = np.ones((input2_data_t.shape[0], input2_data_t.shape[1], 1, 1), dtype=np.float32)
+    input11_data_t = np.ones((input3_data_t.shape[0], input3_data_t.shape[1], 1, 1), dtype=np.float32)
 
     input_data = list()
-    input_data.append(np.transpose(input0_data, (2, 3, 0, 1)))
-    input_data.append(np.transpose(input1_data, (2, 3, 0, 1)))
-    input_data.append(np.transpose(input2_data, (2, 3, 0, 1)))
+    input_data.append(np.concatenate((input4_data_t, input8_data_t, input0_data_t), axis=-1))  # 160 x 160 x 1 x (4+1+c)
+    input_data.append(np.concatenate((input5_data_t, input9_data_t, input1_data_t), axis=-1))  # 80 x 80 x 1 x (4+1+c)
+    input_data.append(np.concatenate((input6_data_t, input10_data_t, input2_data_t), axis=-1))  # 40 x 40 x 1 x (4+1+c)
+    input_data.append(np.concatenate((input7_data_t, input11_data_t, input3_data_t), axis=-1))  # 20 x 20 x 1 x (4+1+c)
 
-    boxes, classes, scores = yolov5_post_process(input_data)
+    boxes, classes, scores = acfree_post_process(input_data)
 
     img_1 = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     if boxes is not None:
         draw(img_1, boxes, scores, classes)
+    # show output
     cv2.imshow("post process result", img_1)
-    cv2.waitKeyEx(0)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    cv2.imwrite('/home/manu/tmp/rknn_sim_img.bmp', img_1)
 
-    rknn.release()
+    print(f'number of boxes after nms --> {len(boxes)}')
+
+    # save results for comparison
+    fn_txt = '/home/manu/tmp/results_rknn.txt'
+    if os.path.exists(fn_txt):
+        os.remove(fn_txt)
+    for box, score, cl in zip(reversed(boxes), reversed(scores), reversed(classes)):
+        IMG_W, IMG_H = IMG_SIZE[0], IMG_SIZE[1]
+        left, top, right, bottom = box
+        xc = (left + right) / 2 / IMG_W
+        yc = (top + bottom) / 2 / IMG_H
+        w = (right - left) / IMG_W
+        h = (bottom - top) / IMG_H
+
+        with open(fn_txt, 'a') as f:
+            f.write(f'{cl} {xc} {yc} {w} {h} {score} \n')

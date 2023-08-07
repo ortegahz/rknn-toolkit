@@ -26,3 +26,5 @@ packages/
 *.pyc
 
 examples/onnx/acfree/snapshot/
+
+examples/pytorch/yolov5/log_feedback_to_the_rknn_toolkit_dev_team\.log
