@@ -28,3 +28,9 @@ packages/
 examples/onnx/acfree/snapshot/
 
 examples/pytorch/yolov5/log_feedback_to_the_rknn_toolkit_dev_team\.log
+
+examples/onnx/acfree/snapshot_hq/
+
+examples/onnx/acfree/torch_jit\.json
+
+examples/onnx/acfree/torch_jit\.data

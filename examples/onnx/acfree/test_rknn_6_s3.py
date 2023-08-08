@@ -195,12 +195,12 @@ def acfree_post_process(input_data):
 
         keep = nms_boxes(b, s)
 
-        # nboxes.append(b[keep])
-        # nclasses.append(c[keep])
-        # nscores.append(s[keep])
-        nboxes.append(b)
-        nclasses.append(c)
-        nscores.append(s)
+        nboxes.append(b[keep])
+        nclasses.append(c[keep])
+        nscores.append(s[keep])
+        # nboxes.append(b)
+        # nclasses.append(c)
+        # nscores.append(s)
 
     if not nclasses and not nscores:
         return None, None, None

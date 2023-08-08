@@ -6,9 +6,11 @@ from rknn.api import RKNN
 ONNX_MODEL = '/home/manu/tmp/acfree.onnx'
 RKNN_MODEL = '/home/manu/nfs/rv1126/install/rknn_yolov5_demo/model/rv1109_rv1126/acfree.rknn'
 DATASET = '/home/manu/tmp/dataset.txt'
+ACC_ANALYSIS_DIR_OUT = './snapshot'
+ACC_ANALYSIS_DATASET = './dataset_rknn_6.txt'
 
-QUANTIZE_ON = False
-ACC_ANALYSIS_ON = False
+QUANTIZE_ON = True
+ACC_ANALYSIS_ON = True
 
 if __name__ == '__main__':
 
@@ -62,14 +64,13 @@ if __name__ == '__main__':
         exit(ret)
     print('done')
 
-    dir_out = './snapshot'
-    if os.path.exists(dir_out):
-        shutil.rmtree(dir_out)
-
     # Accuracy analysis
     if ACC_ANALYSIS_ON:
+        dir_out = ACC_ANALYSIS_DIR_OUT
+        if os.path.exists(dir_out):
+            shutil.rmtree(dir_out)
         print('--> Accuracy analysis')
-        rknn.accuracy_analysis(inputs='./dataset.txt', draw_data_distribute=False)
+        rknn.accuracy_analysis(inputs=ACC_ANALYSIS_DATASET, draw_data_distribute=False)
         print('done')
 
     rknn.release()

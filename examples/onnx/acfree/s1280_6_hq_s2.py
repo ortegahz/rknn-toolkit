@@ -2,6 +2,10 @@ import os
 import shutil
 from rknn.api import RKNN
 
+from test_rknn_6_s1 import DATASET, ACC_ANALYSIS_DATASET, RKNN_MODEL
+
+ACC_ANALYSIS_DIR_OUT = './snapshot_hq'
+
 if __name__ == '__main__':
 
     # Create RKNN object
@@ -23,7 +27,7 @@ if __name__ == '__main__':
     ret = rknn.hybrid_quantization_step2(model_input='./torch_jit.json',
                                          data_input='./torch_jit.data',
                                          model_quantization_cfg='./torch_jit.quantization.cfg',
-                                         dataset='/home/manu/tmp/dataset.txt')
+                                         dataset=DATASET)
     if ret != 0:
         print('hybrid_quantization_step2 failed!')
         exit(ret)
@@ -31,19 +35,18 @@ if __name__ == '__main__':
 
     # Export RKNN model
     print('--> Export RKNN model')
-    ret = rknn.export_rknn('./torch_jit.rknn')
+    ret = rknn.export_rknn(RKNN_MODEL)
     if ret != 0:
         print('Export RKNN model failed!')
         exit(ret)
     print('done')
 
-    dir_nqa = './normal_quantization_analysis'
-    if os.path.exists(dir_nqa):
-        shutil.rmtree(dir_nqa)
+    if os.path.exists(ACC_ANALYSIS_DIR_OUT):
+        shutil.rmtree(ACC_ANALYSIS_DIR_OUT)
 
     # Accuracy analysis
     print('--> Accuracy analysis')
-    rknn.accuracy_analysis(inputs='./dataset.txt', output_dir=dir_nqa)
+    rknn.accuracy_analysis(inputs=ACC_ANALYSIS_DATASET, output_dir=ACC_ANALYSIS_DIR_OUT, draw_data_distribute=False)
     print('done')
 
     rknn.release()

@@ -1,5 +1,8 @@
 import os
+
 from rknn.api import RKNN
+
+from test_rknn_6_s1 import ONNX_MODEL, DATASET
 
 if __name__ == '__main__':
 
@@ -19,15 +22,15 @@ if __name__ == '__main__':
 
     # Load ONNX model
     print('--> Loading model')
-    ret = rknn.load_onnx(model='/home/manu/tmp/acfree.onnx',
-                         outputs=['/detect/cls_preds.0/Conv_output_0',
-                                  '/detect/cls_preds.1/Conv_output_0',
-                                  '/detect/cls_preds.2/Conv_output_0',
-                                  '/detect/cls_preds.3/Conv_output_0',
-                                  '/detect/reg_preds.0/Conv_output_0',
-                                  '/detect/reg_preds.1/Conv_output_0',
-                                  '/detect/reg_preds.2/Conv_output_0',
-                                  '/detect/reg_preds.3/Conv_output_0'])
+    ret = rknn.load_onnx(model=ONNX_MODEL,
+                         outputs=['onnx::Sigmoid_326',
+                                  'onnx::Sigmoid_349',
+                                  'onnx::Sigmoid_372',
+                                  'onnx::Sigmoid_395',
+                                  'onnx::Reshape_329',
+                                  'onnx::Reshape_352',
+                                  'onnx::Reshape_375',
+                                  'onnx::Reshape_398'])
     if ret != 0:
         print('Load model failed!')
         exit(ret)
@@ -39,29 +42,12 @@ if __name__ == '__main__':
 
     # Hybrid quantization step1
     print('--> hybrid_quantization_step1')
-    ret = rknn.hybrid_quantization_step1(dataset='/home/manu/tmp/dataset.txt')
+    ret = rknn.hybrid_quantization_step1(dataset=DATASET)
     if ret != 0:
         print('hybrid_quantization_step1 failed!')
         exit(ret)
     print('done')
 
-    # Conv_/backbone/ERBlock_4/ERBlock_4.1/block/block.0/rbr_reparam/Conv_203: float32
-
-    # Tips
-    print('Please modify *.cfg!')
-    print('==================================================================================================')
-    print('Modify method:')
-    print('Add {layer_name}: {quantized_dtype} to dict of customized_quantize_layers')
-    print('If no layer changed, please set {} as empty directory for customized_quantize_layers')
-    print('==================================================================================================')
-    print('Notes:')
-    print('1. The layer_name comes from quantize_parameters, please strip \'@\' and \':xxx\';')
-    print('   If layer_name contains special characters, please quote the layer name.')
-    print('2. Support quantized_type: asymmetric_affine-u8, dynamic_fixed_point-i8, dynamic_fixed_point-i16, float32.')
-    print('3. Please fill in according to the grammatical rules of yaml.')
-    print(
-        '4. For this model, RKNN Toolkit has provided the corresponding configuration, please directly proceed to step2.')
-    print('==================================================================================================')
+    # customized_quantize_layers: {Conv_Conv_24_172: float32, Conv_Conv_120_95: float32}
 
     rknn.release()
-
