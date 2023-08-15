@@ -86,7 +86,7 @@ def process(input, aux):
                          box_pick_us[1] + box_pick_us[3] / 2]
             max_phone_ac = [-1, -1, -1, 0.]  # xp, yp, s, conf
             for idx_s, s in enumerate(strides):
-                x1, y1, x2, y2 =\
+                x1, y1, x2, y2 = \
                     int(xyxy_unrs[0] / s), int(xyxy_unrs[1] / s), int(xyxy_unrs[2] / s), int(xyxy_unrs[3] / s),
                 feat_psc = copy.deepcopy(aux_sigmoid_lst[idx_s])
                 mask = np.zeros_like(feat_psc)
@@ -179,47 +179,6 @@ def nms_boxes(boxes, scores):
     return keep
 
 
-def yolov5_post_process(input_data):
-    masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-    anchors = [[10, 13], [16, 30], [33, 23], [30, 61], [62, 45],
-               [59, 119], [116, 90], [156, 198], [373, 326]]
-
-    boxes, classes, scores = [], [], []
-    for input, mask in zip(input_data, masks):
-        b, c, s = process(input, mask, anchors)
-        b, c, s = filter_boxes(b, c, s)
-        boxes.append(b)
-        classes.append(c)
-        scores.append(s)
-
-    boxes = np.concatenate(boxes)
-    boxes = xywh2xyxy(boxes)
-    classes = np.concatenate(classes)
-    scores = np.concatenate(scores)
-
-    nboxes, nclasses, nscores = [], [], []
-    for c in set(classes):
-        inds = np.where(classes == c)
-        b = boxes[inds]
-        c = classes[inds]
-        s = scores[inds]
-
-        keep = nms_boxes(b, s)
-
-        nboxes.append(b[keep])
-        nclasses.append(c[keep])
-        nscores.append(s[keep])
-
-    if not nclasses and not nscores:
-        return None, None, None
-
-    boxes = np.concatenate(nboxes)
-    classes = np.concatenate(nclasses)
-    scores = np.concatenate(nscores)
-
-    return boxes, classes, scores
-
-
 def pd_post_process(input_data):
     boxes, classes, scores, pois = [], [], [], []
     for input in input_data[:-1]:
@@ -300,8 +259,7 @@ def draw(image, boxes, scores, classes, pois):
         cv2.line(image, (int(ppc_x), int(ppc_y)), (int(poi_x), int(poi_y)), (0, 255, 0), 2)
 
 
-if __name__ == '__main__':
-
+def main():
     # Set inputs
     img = cv2.imread(IMG_PATH)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -375,3 +333,7 @@ if __name__ == '__main__':
 
         with open(fn_txt, 'a') as f:
             f.write(f'{cl} {xc} {yc} {w} {h} {poi_x} {poi_y} {poi_conf}, {score} \n')
+
+
+if __name__ == '__main__':
+    main()
