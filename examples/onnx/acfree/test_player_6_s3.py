@@ -55,7 +55,7 @@ def process(input, aux):
                    aux_sigmoid_lst_s.flatten(),
                    fmt="%f", delimiter="\n")
 
-    # indices = np.where(box_class_probs == 0.5371627807617188)
+    # indices = np.where(box_class_probs == 0.9171544313430786)
     # print(f'{grid_h} {grid_w} -- > {indices} <{input[..., 5:][indices[0], indices[1], indices[2], indices[3]]}>')
     # print(f'{grid_h} {grid_w} --> {len(box_class_probs[box_class_probs > BOX_THRESH].flatten())}')
 
@@ -98,6 +98,10 @@ def process(input, aux):
                 max_phone_ac = [xp, yp, s, value] if value > max_phone_ac[-1] else max_phone_ac
             pois[i, j, 0, 0], pois[i, j, 0, 1], pois[i, j, 0, 2] = \
                 max_phone_ac[0] * max_phone_ac[2], max_phone_ac[1] * max_phone_ac[2], max_phone_ac[-1]
+            # if i == 46 and j == 54:
+            #     print(f'{pois[i, j, 0, :]}')
+            #     print(f'{max_phone_ac}')
+            #     print(f'{sigmoid(aux.flatten()[int(max_phone_ac[1] * IMG_SIZE[0] / max_phone_ac[2] + max_phone_ac[0])])}')
 
     return box, box_confidence, box_class_probs, pois
 
