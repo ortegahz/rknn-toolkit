@@ -5,12 +5,8 @@ import cv2
 import numpy as np
 
 from rsn_s1 import QUANTIZE_ON
-from rsn_s2 import IMG_PATH
+from rsn_s2 import PIXEL_STD, IMG_PATH, KEYPOINT_NUM, OUTPUT_SHAPE, INPUT_SHAPE, DET, image_alignment
 
-KEYPOINT_NUM = 17
-PIXEL_STD = 200
-IMG_SIZE = (256, 192)  # (height, width)
-OUTPUT_SHAPE = (64, 48)
 SHIFTS = (0.25,)
 
 
@@ -19,10 +15,12 @@ def save_results(kps, scores, fn_txt='/home/manu/tmp/results_rknn_sim.txt'):
         os.remove(fn_txt)
     for kp, score in zip(kps, scores):
         with open(fn_txt, 'a') as f:
-            f.write(f'{kp[0]} {kp[1]} {score[0]} \n')
+            # f.write(f'{kp[0]} {kp[1]} {score[0]} \n')
+            f.write(f'{kp[0]} {kp[1]} \n')
 
 
-def post_process(input_data, kernel=11):
+def post_process(input_data, center, scale, kernel=11):
+    scale *= PIXEL_STD
     score_map = input_data[0].copy()
     score_map = score_map / 255 + 0.5
     kps = np.zeros((KEYPOINT_NUM, 2))
@@ -53,6 +51,8 @@ def post_process(input_data, kernel=11):
         y = max(0, min(y, OUTPUT_SHAPE[0] - 1))
         kps[w] = np.array([x * 4 + 2, y * 4 + 2])
         scores[w, 0] = score_map[w, int(round(y) + 1e-9), int(round(x) + 1e-9)]
+    kps[:, 0] = kps[:, 0] / INPUT_SHAPE[1] * scale[0] + center[0] - scale[0] * 0.5
+    kps[:, 1] = kps[:, 1] / INPUT_SHAPE[0] * scale[1] + center[1] - scale[1] * 0.5
     return kps, scores
 
 
@@ -79,6 +79,7 @@ def draw_results(img, kps, scores):
 def main():
     # Set inputs
     img = cv2.imread(IMG_PATH)
+    _, center, scale = image_alignment(img, DET)
 
     if QUANTIZE_ON:
         with open('/home/manu/tmp/rknn_sim_outputs.pickle', 'rb') as f:
@@ -88,7 +89,7 @@ def main():
             outputs = pickle.load(f)
 
     # post process
-    kps, scores = post_process(outputs[0])
+    kps, scores = post_process(outputs[0], center, scale)
 
     # save results for comparison
     save_results(kps, scores)
