@@ -1,0 +1,105 @@
+import os
+import pickle
+
+import cv2
+import numpy as np
+
+from rsn_s1 import QUANTIZE_ON
+from rsn_s2 import IMG_PATH
+
+KEYPOINT_NUM = 17
+PIXEL_STD = 200
+IMG_SIZE = (256, 192)  # (height, width)
+OUTPUT_SHAPE = (64, 48)
+SHIFTS = (0.25,)
+
+
+def save_results(kps, scores, fn_txt='/home/manu/tmp/results_rknn_sim.txt'):
+    if os.path.exists(fn_txt):
+        os.remove(fn_txt)
+    for kp, score in zip(kps, scores):
+        with open(fn_txt, 'a') as f:
+            f.write(f'{kp[0]} {kp[1]} {score[0]} \n')
+
+
+def post_process(input_data, kernel=11):
+    score_map = input_data[0].copy()
+    score_map = score_map / 255 + 0.5
+    kps = np.zeros((KEYPOINT_NUM, 2))
+    scores = np.zeros((KEYPOINT_NUM, 1))
+    border = 10
+    dr = np.zeros((KEYPOINT_NUM, OUTPUT_SHAPE[0] + 2 * border, OUTPUT_SHAPE[1] + 2 * border))
+    dr[:, border: -border, border: -border] = input_data[0].copy()
+    for w in range(KEYPOINT_NUM):
+        dr[w] = cv2.GaussianBlur(dr[w], (kernel, kernel), 0)
+    for w in range(KEYPOINT_NUM):
+        for j in range(len(SHIFTS)):
+            if j == 0:
+                lb = dr[w].argmax()
+                y, x = np.unravel_index(lb, dr[w].shape)
+                dr[w, y, x] = 0
+                x -= border
+                y -= border
+            lb = dr[w].argmax()
+            py, px = np.unravel_index(lb, dr[w].shape)
+            dr[w, py, px] = 0
+            px -= border + x
+            py -= border + y
+            ln = (px ** 2 + py ** 2) ** 0.5
+            if ln > 1e-3:
+                x += SHIFTS[j] * px / ln
+                y += SHIFTS[j] * py / ln
+        x = max(0, min(x, OUTPUT_SHAPE[1] - 1))
+        y = max(0, min(y, OUTPUT_SHAPE[0] - 1))
+        kps[w] = np.array([x * 4 + 2, y * 4 + 2])
+        scores[w, 0] = score_map[w, int(round(y) + 1e-9), int(round(x) + 1e-9)]
+    return kps, scores
+
+
+def draw_line(img, p1, p2):
+    c = (0, 0, 255)
+    if p1[0] > 0 and p1[1] > 0 and p2[0] > 0 and p2[1] > 0:
+        cv2.line(img, tuple(p1), tuple(p2), c, 2)
+
+
+def draw_results(img, kps, scores):
+    joints = kps
+    pairs = [[16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 12],
+             [7, 13], [6, 7], [6, 8], [7, 9], [8, 10], [9, 11], [2, 3],
+             [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]]
+    colors = np.random.randint(0, 256, (KEYPOINT_NUM, 3)).tolist()
+
+    for i in range(KEYPOINT_NUM):
+        cv2.circle(img, tuple(joints[i, :2].astype(int)), 2, tuple(colors[i]), 2)
+
+    for pair in pairs:
+        draw_line(img, joints[pair[0] - 1, :2].astype(int), joints[pair[1] - 1, :2].astype(int))
+
+
+def main():
+    # Set inputs
+    img = cv2.imread(IMG_PATH)
+
+    if QUANTIZE_ON:
+        with open('/home/manu/tmp/rknn_sim_outputs.pickle', 'rb') as f:
+            outputs = pickle.load(f)
+    else:
+        with open('/home/manu/tmp/rknn_sim_outputs_nq.pickle', 'rb') as f:
+            outputs = pickle.load(f)
+
+    # post process
+    kps, scores = post_process(outputs[0])
+
+    # save results for comparison
+    save_results(kps, scores)
+
+    # show output
+    draw_results(img, kps, scores)
+    cv2.imshow("post process result", img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    cv2.imwrite('/home/manu/tmp/rknn_sim_img.bmp', img)
+
+
+if __name__ == '__main__':
+    main()

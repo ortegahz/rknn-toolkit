@@ -34,3 +34,5 @@ examples/onnx/acfree/snapshot_hq/
 examples/onnx/acfree/torch_jit\.json
 
 examples/onnx/acfree/torch_jit\.data
+
+examples/onnx/rsn/log_feedback_to_the_rknn_toolkit_dev_team\.log
