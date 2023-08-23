@@ -5,12 +5,13 @@ from rknn.api import RKNN
 
 ONNX_MODEL = '/home/manu/tmp/player.onnx'
 RKNN_MODEL = '/home/manu/nfs/rv1126/install/rknn_yolov5_demo/model/rv1109_rv1126/player.rknn'
-DATASET = './dataset.txt'
+DATASET = '/home/manu/tmp/dataset.txt'
 ACC_ANALYSIS_DIR_OUT = './snapshot'
 ACC_ANALYSIS_DATASET = './dataset_rknn_6.txt'
 
-QUANTIZE_ON = False
-ACC_ANALYSIS_ON = False
+QUANTIZE_ON = True
+ACC_ANALYSIS_ON = True
+PRE_COMPILE_ON = False
 
 if __name__ == '__main__':
 
@@ -36,10 +37,10 @@ if __name__ == '__main__':
     print('--> Loading model')
     ret = rknn.load_onnx(model=ONNX_MODEL,
                          outputs=['outputs',
-                                  '874',
-                                  '875',
-                                  '876',
-                                  '1277'])
+                                  '582',
+                                  '583',
+                                  '584',
+                                  '801'])
     if ret != 0:
         print('Load model failed!')
         exit(ret)
@@ -47,7 +48,7 @@ if __name__ == '__main__':
 
     # Build model
     print('--> Building model')
-    ret = rknn.build(do_quantization=QUANTIZE_ON, dataset=DATASET)
+    ret = rknn.build(do_quantization=QUANTIZE_ON, dataset=DATASET, pre_compile=PRE_COMPILE_ON)
     if ret != 0:
         print('Build model failed!')
         exit(ret)

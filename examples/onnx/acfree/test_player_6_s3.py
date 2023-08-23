@@ -50,10 +50,10 @@ def process(input, aux):
         aux_sigmoid_lst.append(aux_sigmoid[idx_s: idx_e].reshape(_h, _w))
         idx_s = idx_e
 
-    for i, aux_sigmoid_lst_s in enumerate(aux_sigmoid_lst):
-        np.savetxt('/home/manu/tmp/rknn_outputs_aux_sigmoid_lst_s_%s.txt' % i,
-                   aux_sigmoid_lst_s.flatten(),
-                   fmt="%f", delimiter="\n")
+    # for i, aux_sigmoid_lst_s in enumerate(aux_sigmoid_lst):
+    #     np.savetxt('/home/manu/tmp/rknn_outputs_aux_sigmoid_lst_s_%s.txt' % i,
+    #                aux_sigmoid_lst_s.flatten(),
+    #                fmt="%f", delimiter="\n")
 
     # indices = np.where(box_class_probs == 0.9171544313430786)
     # print(f'{grid_h} {grid_w} -- > {indices} <{input[..., 5:][indices[0], indices[1], indices[2], indices[3]]}>')
