@@ -1,3 +1,4 @@
+import logging
 import os
 import pickle
 
@@ -15,8 +16,8 @@ def save_results(kps, scores, fn_txt='/home/manu/tmp/results_rknn_sim.txt'):
         os.remove(fn_txt)
     for kp, score in zip(kps, scores):
         with open(fn_txt, 'a') as f:
-            # f.write(f'{kp[0]} {kp[1]} {score[0]} \n')
-            f.write(f'{kp[0]} {kp[1]} \n')
+            f.write(f'{kp[0]} {kp[1]} {score[0]} \n')
+            # f.write(f'{kp[0]} {kp[1]} \n')
 
 
 def post_process(input_data, center, scale, kernel=11):
@@ -30,17 +31,21 @@ def post_process(input_data, center, scale, kernel=11):
     dr[:, border: -border, border: -border] = input_data[0].copy()
     for w in range(KEYPOINT_NUM):
         dr[w] = cv2.GaussianBlur(dr[w], (kernel, kernel), 0)
+        # np.savetxt('/home/manu/tmp/rknn_output_dr_%s.txt' % w, dr[w].flatten(), fmt="%f", delimiter="\n")
     for w in range(KEYPOINT_NUM):
         for j in range(len(SHIFTS)):
             if j == 0:
+                max_top1 = dr[w].max()
                 lb = dr[w].argmax()
                 y, x = np.unravel_index(lb, dr[w].shape)
                 dr[w, y, x] = 0
                 x -= border
                 y -= border
+            max_top2 = dr[w].max()
             lb = dr[w].argmax()
             py, px = np.unravel_index(lb, dr[w].shape)
             dr[w, py, px] = 0
+            print(f'[w] x, y, max_top1, px, py, max_top2 --> {w} {x}, {y}, {max_top1} {px}, {py} {max_top2}')
             px -= border + x
             py -= border + y
             ln = (px ** 2 + py ** 2) ** 0.5
@@ -51,6 +56,7 @@ def post_process(input_data, center, scale, kernel=11):
         y = max(0, min(y, OUTPUT_SHAPE[0] - 1))
         kps[w] = np.array([x * 4 + 2, y * 4 + 2])
         scores[w, 0] = score_map[w, int(round(y) + 1e-9), int(round(x) + 1e-9)]
+    save_results(kps, scores)
     kps[:, 0] = kps[:, 0] / INPUT_SHAPE[1] * scale[0] + center[0] - scale[0] * 0.5
     kps[:, 1] = kps[:, 1] / INPUT_SHAPE[0] * scale[1] + center[1] - scale[1] * 0.5
     return kps, scores
@@ -92,7 +98,7 @@ def main():
     kps, scores = post_process(outputs[0], center, scale)
 
     # save results for comparison
-    save_results(kps, scores)
+    # save_results(kps, scores)
 
     # show output
     draw_results(img, kps, scores)
