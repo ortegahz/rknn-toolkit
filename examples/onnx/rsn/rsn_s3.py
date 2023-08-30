@@ -20,7 +20,7 @@ def save_results(kps, scores, fn_txt='/home/manu/tmp/results_rknn_sim.txt'):
             # f.write(f'{kp[0]} {kp[1]} \n')
 
 
-def post_process(input_data, center, scale, kernel=11):
+def post_process(input_data, center, scale, kernel=5):
     scale *= PIXEL_STD
     score_map = input_data[0].copy()
     score_map = score_map / 255 + 0.5
@@ -30,8 +30,9 @@ def post_process(input_data, center, scale, kernel=11):
     dr = np.zeros((KEYPOINT_NUM, OUTPUT_SHAPE[0] + 2 * border, OUTPUT_SHAPE[1] + 2 * border))
     dr[:, border: -border, border: -border] = input_data[0].copy()
     for w in range(KEYPOINT_NUM):
-        dr[w] = cv2.GaussianBlur(dr[w], (kernel, kernel), 0)
         # np.savetxt('/home/manu/tmp/rknn_output_dr_%s.txt' % w, dr[w].flatten(), fmt="%f", delimiter="\n")
+        dr[w] = cv2.GaussianBlur(dr[w], (kernel, kernel), 0)
+        np.savetxt('/home/manu/tmp/rknn_output_dr_%s.txt' % w, dr[w].flatten(), fmt="%f", delimiter="\n")
     for w in range(KEYPOINT_NUM):
         for j in range(len(SHIFTS)):
             if j == 0:
@@ -56,7 +57,7 @@ def post_process(input_data, center, scale, kernel=11):
         y = max(0, min(y, OUTPUT_SHAPE[0] - 1))
         kps[w] = np.array([x * 4 + 2, y * 4 + 2])
         scores[w, 0] = score_map[w, int(round(y) + 1e-9), int(round(x) + 1e-9)]
-    save_results(kps, scores)
+    save_results(kps, scores, fn_txt='/home/manu/tmp/results_rknn_sim_mid.txt')
     kps[:, 0] = kps[:, 0] / INPUT_SHAPE[1] * scale[0] + center[0] - scale[0] * 0.5
     kps[:, 1] = kps[:, 1] / INPUT_SHAPE[0] * scale[1] + center[1] - scale[1] * 0.5
     return kps, scores
@@ -88,17 +89,17 @@ def main():
     _, center, scale = image_alignment(img, DET)
 
     if QUANTIZE_ON:
-        with open('/home/manu/tmp/rknn_sim_outputs.pickle', 'rb') as f:
+        with open('/home/manu/tmp/rknn_sim_outputs_rsn.pickle', 'rb') as f:
             outputs = pickle.load(f)
     else:
-        with open('/home/manu/tmp/rknn_sim_outputs_nq.pickle', 'rb') as f:
+        with open('/home/manu/tmp/rknn_sim_outputs_rsn_nq.pickle', 'rb') as f:
             outputs = pickle.load(f)
 
     # post process
     kps, scores = post_process(outputs[0], center, scale)
 
     # save results for comparison
-    # save_results(kps, scores)
+    save_results(kps, scores)
 
     # show output
     draw_results(img, kps, scores)

@@ -9,8 +9,8 @@ DATASET = '/home/manu/tmp/dataset.txt'
 ACC_ANALYSIS_DIR_OUT = './snapshot'
 ACC_ANALYSIS_DATASET = './dataset_rknn_6.txt'
 
-QUANTIZE_ON = True
-ACC_ANALYSIS_ON = True
+QUANTIZE_ON = False
+ACC_ANALYSIS_ON = False
 PRE_COMPILE_ON = False
 
 if __name__ == '__main__':

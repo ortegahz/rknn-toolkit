@@ -1,4 +1,5 @@
 import pickle
+import sys
 
 import cv2
 import numpy as np
@@ -6,7 +7,11 @@ from rknn.api import RKNN
 
 from rsn_s1 import QUANTIZE_ON, RKNN_MODEL
 
-IMG_PATH = '/media/manu/samsung/pics/rsn.bmp'
+# IMG_PATH = '/media/manu/samsung/pics/rsn.bmp'
+# DET = np.array([153.53, 231.12, 270.17, 403.95, 0.3091])  # [x, y, w, h, score]
+IMG_PATH = '/home/manu/nfs/rv1126/install/rknn_yolov5_demo/model/player_1280.bmp'
+DET = np.array([825., 679., 111.1, 244.2, 0.92078])  # [x, y, w, h, score]
+
 X_EXTENTION = 0.01 * 9.0
 Y_EXTENTION = 0.015 * 9.0
 KEYPOINT_NUM = 17
@@ -14,7 +19,6 @@ PIXEL_STD = 200
 INPUT_SHAPE = (256, 192)  # (height, width)
 OUTPUT_SHAPE = (64, 48)
 WIDTH_HEIGHT_RATIO = INPUT_SHAPE[1] / INPUT_SHAPE[0]
-DET = np.array([153.53, 231.12, 270.17, 403.95, 0.3091])  # [x, y, w, h, score]
 
 
 def get_3rd_point(a, b):
@@ -55,6 +59,8 @@ def get_affine_transform(center, scale, rot, output_size):
     src[2:, :] = get_3rd_point(src[0, :], src[1, :])
     dst[2:, :] = get_3rd_point(dst[0, :], dst[1, :])
 
+    print(src)
+    print(dst)
     trans = cv2.getAffineTransform(np.float32(src), np.float32(dst))
 
     return trans
@@ -79,15 +85,21 @@ def image_alignment(img, det):
     rotation = 0
     scale[0] *= (1. + X_EXTENTION)
     scale[1] *= (1. + Y_EXTENTION)
+    print(scale)
     # fit the ratio
     if scale[0] > WIDTH_HEIGHT_RATIO * scale[1]:
         scale[1] = scale[0] * 1.0 / WIDTH_HEIGHT_RATIO
     else:
         scale[0] = scale[1] * 1.0 * WIDTH_HEIGHT_RATIO
+    print(scale)
     trans = get_affine_transform(center, scale, rotation, INPUT_SHAPE)
+    print(trans)
 
     img_wa = cv2.warpAffine(img, trans, (int(INPUT_SHAPE[1]), int(INPUT_SHAPE[0])),
                             flags=cv2.INTER_LINEAR)
+    cv2.imwrite('/home/manu/tmp/img_wa.bmp', img_wa)
+    np.savetxt('/home/manu/tmp/rknn_output_img_wa.txt', img_wa.flatten(), fmt="%f", delimiter="\n")
+    # sys.exit(0)
     return img_wa, center, scale
 
 
@@ -127,18 +139,18 @@ if __name__ == '__main__':
     if QUANTIZE_ON:
         for save_i in range(len(outputs)):
             save_output = outputs[save_i].flatten()
-            np.savetxt('/home/manu/tmp/rknn_output_%s.txt' % save_i, save_output,
+            np.savetxt('/home/manu/tmp/rknn_output_rsn_%s.txt' % save_i, save_output,
                        fmt="%f", delimiter="\n")
 
-        with open('/home/manu/tmp/rknn_sim_outputs.pickle', 'wb') as f:
+        with open('/home/manu/tmp/rknn_sim_outputs_rsn.pickle', 'wb') as f:
             pickle.dump(outputs, f)
     else:
         for save_i in range(len(outputs)):
             save_output = outputs[save_i].flatten()
-            np.savetxt('/home/manu/tmp/rknn_output_%s_nq.txt' % save_i, save_output,
+            np.savetxt('/home/manu/tmp/rknn_output_rsn_%s_nq.txt' % save_i, save_output,
                        fmt="%f", delimiter="\n")
 
-        with open('/home/manu/tmp/rknn_sim_outputs_nq.pickle', 'wb') as f:
+        with open('/home/manu/tmp/rknn_sim_outputs_rsn_nq.pickle', 'wb') as f:
             pickle.dump(outputs, f)
 
     rknn.release()
