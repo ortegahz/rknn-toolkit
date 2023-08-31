@@ -9,8 +9,9 @@ DATASET = '/home/manu/tmp/dataset.txt'
 ACC_ANALYSIS_DIR_OUT = './snapshot'
 ACC_ANALYSIS_DATASET = './dataset_rknn_6.txt'
 
-QUANTIZE_ON = False
+QUANTIZE_ON = True
 ACC_ANALYSIS_ON = False
+PRE_COMPILE_ON = False  # pre-compile sucks
 
 if __name__ == '__main__':
 
@@ -50,7 +51,7 @@ if __name__ == '__main__':
 
     # Build model
     print('--> Building model')
-    ret = rknn.build(do_quantization=QUANTIZE_ON, dataset=DATASET)
+    ret = rknn.build(do_quantization=QUANTIZE_ON, dataset=DATASET, pre_compile=PRE_COMPILE_ON)
     if ret != 0:
         print('Build model failed!')
         exit(ret)
