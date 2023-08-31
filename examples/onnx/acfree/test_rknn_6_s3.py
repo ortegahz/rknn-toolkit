@@ -131,47 +131,6 @@ def nms_boxes(boxes, scores):
     return keep
 
 
-def yolov5_post_process(input_data):
-    masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-    anchors = [[10, 13], [16, 30], [33, 23], [30, 61], [62, 45],
-               [59, 119], [116, 90], [156, 198], [373, 326]]
-
-    boxes, classes, scores = [], [], []
-    for input, mask in zip(input_data, masks):
-        b, c, s = process(input, mask, anchors)
-        b, c, s = filter_boxes(b, c, s)
-        boxes.append(b)
-        classes.append(c)
-        scores.append(s)
-
-    boxes = np.concatenate(boxes)
-    boxes = xywh2xyxy(boxes)
-    classes = np.concatenate(classes)
-    scores = np.concatenate(scores)
-
-    nboxes, nclasses, nscores = [], [], []
-    for c in set(classes):
-        inds = np.where(classes == c)
-        b = boxes[inds]
-        c = classes[inds]
-        s = scores[inds]
-
-        keep = nms_boxes(b, s)
-
-        nboxes.append(b[keep])
-        nclasses.append(c[keep])
-        nscores.append(s[keep])
-
-    if not nclasses and not nscores:
-        return None, None, None
-
-    boxes = np.concatenate(nboxes)
-    classes = np.concatenate(nclasses)
-    scores = np.concatenate(nscores)
-
-    return boxes, classes, scores
-
-
 def acfree_post_process(input_data):
     boxes, classes, scores = [], [], []
     for input in input_data:
