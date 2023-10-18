@@ -7,10 +7,10 @@ from rknn.api import RKNN
 
 from rsn_s1 import QUANTIZE_ON, RKNN_MODEL
 
-# IMG_PATH = '/media/manu/samsung/pics/rsn.bmp'
-# DET = np.array([153.53, 231.12, 270.17, 403.95, 0.3091])  # [x, y, w, h, score]
-IMG_PATH = '/home/manu/nfs/rv1126/install/rknn_yolov5_demo/model/player_1280.bmp'
-DET = np.array([825., 679., 111.1, 244.2, 0.92078])  # [x, y, w, h, score]
+IMG_PATH = '/media/manu/samsung/pics/kps.bmp'
+DET = np.array([153.53, 231.12, 270.17, 403.95, 0.3091])  # [x, y, w, h, score]
+# IMG_PATH = '/home/manu/nfs/rv1126/install/rknn_yolov5_demo/model/player_1280.bmp'
+# DET = np.array([825., 679., 111.1, 244.2, 0.92078])  # [x, y, w, h, score]
 
 X_EXTENTION = 0.01 * 9.0
 Y_EXTENTION = 0.015 * 9.0
@@ -127,13 +127,14 @@ if __name__ == '__main__':
 
     # Set inputs
     img = cv2.imread(IMG_PATH)
-
     img, _, _ = image_alignment(img, DET)
-    # cv2.imwrite('/home/manu/tmp/rknn_img_in.bmp', img)
+
+    # img = cv2.imread('/media/manu/samsung/pics/kps_align.bmp')
 
     # Inference
     print('--> Running model')
     outputs = rknn.inference(inputs=[img])
+    print(f'shape of outputs[0] -- > {outputs[0].shape}')
 
     # save outputs
     if QUANTIZE_ON:

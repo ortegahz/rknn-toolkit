@@ -5,11 +5,11 @@ from rknn.api import RKNN
 
 ONNX_MODEL = '/home/manu/tmp/iter-96000.onnx'
 RKNN_MODEL = '/home/manu/nfs/rv1126/install/rknn_yolov5_demo/model/rv1109_rv1126/iter-96000.rknn'
-DATASET = './dataset.txt'
+DATASET = './dataset_rsn.txt'
 ACC_ANALYSIS_DIR_OUT = './snapshot'
 ACC_ANALYSIS_DATASET = './dataset_rsn.txt'
 
-QUANTIZE_ON = False
+QUANTIZE_ON = True
 ACC_ANALYSIS_ON = False
 PRE_COMPILE_ON = False
 
@@ -25,8 +25,11 @@ if __name__ == '__main__':
     # pre-process config
     print('--> Config model')
     rknn.config(reorder_channel='0 1 2',
+                # reorder_channel='2 1 0',  # for acc analysis
                 mean_values=[[103.5300, 116.2800, 123.6750]],
                 std_values=[[57.3750, 57.1200, 58.3950]],
+                # mean_values=[[0., 0., 0.]],
+                # std_values=[[1., 1., 1.]],
                 optimization_level=3,
                 target_platform='rv1126',
                 output_optimize=1,
@@ -35,8 +38,8 @@ if __name__ == '__main__':
 
     # Load ONNX model
     print('--> Loading model')
-    ret = rknn.load_onnx(model=ONNX_MODEL,
-                         outputs=['res'])
+    ret = rknn.load_onnx(model=ONNX_MODEL, outputs=['res'])
+    # ret = rknn.load_onnx(model=ONNX_MODEL, outputs=['input.4'])
     if ret != 0:
         print('Load model failed!')
         exit(ret)
