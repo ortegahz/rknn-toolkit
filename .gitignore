@@ -1,0 +1,10 @@
+/examples/onnx/yolov5/yolov5s.rknn
+.idea
+/packages/rknn_toolkit-1.7.3-cp35-cp35m-linux_aarch64.whl
+/packages/rknn_toolkit-1.7.3-cp36-cp36m-linux_x86_64.whl
+/packages/rknn_toolkit-1.7.3-cp36-cp36m-macosx_10_15_x86_64.whl
+/packages/rknn_toolkit-1.7.3-cp36-cp36m-win_amd64.whl
+/packages/rknn_toolkit-1.7.3-cp37-cp37m-linux_aarch64.whl
+/packages/rknn_toolkit-1.7.3-cp37-cp37m-macosx_10_15_x86_64.whl
+/packages/rknn_toolkit-1.7.3-cp38-cp38-linux_x86_64.whl
+/examples/onnx/yolov9/log_feedback_to_the_rknn_toolkit_dev_team.log
