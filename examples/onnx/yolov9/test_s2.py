@@ -54,7 +54,7 @@ def parser(feat_cls, feat_reg, h, w, s):
             if _conf_max < 0.1:
                 continue
             _reg = feat_reg[:, i, j]
-            _reg_w = np.arange(1, 17)
+            _reg_w = np.arange(0, 16)
             l_pred, t_pred, r_pred, b_pred = \
                 softmax(_reg[:16]), softmax(_reg[16:32]), softmax(_reg[32:48]), softmax(_reg[48:])
             l, t, r, b = np.dot(l_pred, _reg_w), np.dot(t_pred, _reg_w), np.dot(r_pred, _reg_w), np.dot(b_pred, _reg_w)
@@ -126,7 +126,7 @@ if image is not None:
         x1, y1, x2, y2 = map(int, box)
         label = f'Class: {cls} Conf: {score:.2f}'
         color = (0, 255, 0)  # Green color for the box
-        thickness = 2
+        thickness = 1
         cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness)
         cv2.putText(image, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, thickness)
 

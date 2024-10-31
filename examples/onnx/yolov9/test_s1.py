@@ -11,6 +11,7 @@ DATASET = './dataset.txt'
 
 QUANTIZE_ON = True
 SAVE_RESULT = False
+PRE_COMPILE = True
 
 BOX_THRESH = 0.5
 NMS_THRESH = 0.6
@@ -48,7 +49,7 @@ if __name__ == '__main__':
 
     # Build model
     print('--> Building model')
-    ret = rknn.build(do_quantization=QUANTIZE_ON, dataset=DATASET)
+    ret = rknn.build(do_quantization=QUANTIZE_ON, dataset=DATASET, pre_compile=PRE_COMPILE)
     if ret != 0:
         print('Build model failed!')
         exit(ret)
@@ -62,16 +63,16 @@ if __name__ == '__main__':
         exit(ret)
     print('done')
 
-    # init runtime environment
-    print('--> Init runtime environment')
-    ret = rknn.init_runtime()
-    # ret = rknn.init_runtime('rk1808', device_id='1808')
-    if ret != 0:
-        print('Init runtime environment failed')
-        exit(ret)
-    print('done')
-
     if SAVE_RESULT:
+        # init runtime environment
+        print('--> Init runtime environment')
+        ret = rknn.init_runtime()
+        # ret = rknn.init_runtime('rk1808', device_id='1808')
+        if ret != 0:
+            print('Init runtime environment failed')
+            exit(ret)
+        print('done')
+
         # Set inputs
         img = cv2.imread(IMG_PATH)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
