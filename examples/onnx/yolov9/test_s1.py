@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from rknn.api import RKNN
 
-ONNX_MODEL = 'modified_yolov9-s-converted-simplify.onnx'
+ONNX_MODEL = 'modified_modified_yolov9-s-converted-simplify.onnx'
 RKNN_MODEL = 'modified_yolov9-s-converted-simplify.rknn'
 IMG_PATH = './visi_000000_736_1280.bmp'
 DATASET = './dataset.txt'
@@ -41,7 +41,13 @@ if __name__ == '__main__':
 
     # Load ONNX model
     print('--> Loading model')
-    ret = rknn.load_onnx(model=ONNX_MODEL)
+    ret = rknn.load_onnx(model=ONNX_MODEL,
+                         outputs=['output',
+                                  'output1',
+                                  'output2',
+                                  'output3',
+                                  'output4',
+                                  'output5',])
     if ret != 0:
         print('Load model failed!')
         exit(ret)

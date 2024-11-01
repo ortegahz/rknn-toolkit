@@ -8,3 +8,4 @@
 /packages/rknn_toolkit-1.7.3-cp37-cp37m-macosx_10_15_x86_64.whl
 /packages/rknn_toolkit-1.7.3-cp38-cp38-linux_x86_64.whl
 /examples/onnx/yolov9/log_feedback_to_the_rknn_toolkit_dev_team.log
+/examples/onnx/yolov9/modified_yolov9-s-converted-simplify.rknn
